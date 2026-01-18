@@ -171,7 +171,21 @@ OSM.Query = function (map) {
       credentials: OSM.OVERPASS_CREDENTIALS ? "include" : "same-origin",
       signal: $section.data("ajax").signal
     })
-      .then(response => response.json())
+      .then(async response => {
+        if (response.ok) {
+          return response.json();
+        }
+
+        const status = response.statusText || response.status;
+
+        if (response.status !== 400) {
+          throw new Error(status);
+        }
+
+        const text = await response.text();
+        throw new Error(text || status);
+      })
+
       .then(function (results) {
         let elements = results.elements;
 
@@ -224,9 +238,7 @@ OSM.Query = function (map) {
       })
       .catch(function (error) {
         if (error.name === "AbortError") return;
-
         $section.find(".loader").hide();
-
         renderError($ul, error.message);
       });
   }
